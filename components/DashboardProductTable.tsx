@@ -17,10 +17,12 @@ import CustomButton from "./CustomButton";
 import apiClient from "@/lib/api";
 import { sanitize } from "@/lib/sanitize";
 
+import toast from "react-hot-toast";
+
 const DashboardProductTable = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
-  useEffect(() => {
+  const fetchProducts = () => {
     apiClient.get("/api/products?mode=admin", {cache: "no-store"})
       .then((res) => {
         return res.json();
@@ -28,7 +30,28 @@ const DashboardProductTable = () => {
       .then((data) => {
         setProducts(data);
       });
+  };
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
+
+  const deleteProduct = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      const response = await apiClient.delete(`/api/products/${id}`);
+      if (response.status === 204) {
+        toast.success("Product deleted successfully");
+        fetchProducts(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Error deleting product");
+      }
+    } catch (error) {
+      toast.error("There was an error while deleting product");
+    }
+  };
 
   return (
     <div className="w-full">
@@ -104,14 +127,20 @@ const DashboardProductTable = () => {
                     
                   </td>
                   <td>${product?.price}</td>
-                  <th>
+                  <td className="flex gap-2">
                     <Link
                       href={`/admin/products/${product.id}`}
-                      className="btn btn-ghost btn-xs"
+                      className="btn btn-info btn-xs text-white"
                     >
-                      details
+                      edit
                     </Link>
-                  </th>
+                    <button
+                      onClick={() => deleteProduct(product.id)}
+                      className="btn btn-error btn-xs text-white"
+                    >
+                      delete
+                    </button>
+                  </td>
                 </tr>
               ))}
           </tbody>

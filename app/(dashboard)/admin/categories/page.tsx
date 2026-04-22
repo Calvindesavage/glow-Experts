@@ -6,11 +6,12 @@ import React, { useEffect, useState } from "react";
 import { formatCategoryName } from "../../../../utils/categoryFormating";
 import apiClient from "@/lib/api";
 
+import toast from "react-hot-toast";
+
 const DashboardCategory = () => {
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // getting all categories to be displayed on the all categories page
-  useEffect(() => {
+  const fetchCategories = () => {
     apiClient.get("/api/categories")
       .then((res) => {
         return res.json();
@@ -18,7 +19,29 @@ const DashboardCategory = () => {
       .then((data) => {
         setCategories(data);
       });
+  };
+
+  // getting all categories to be displayed on the all categories page
+  useEffect(() => {
+    fetchCategories();
   }, []);
+
+  const deleteCategory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this category? All associated products will be deleted.")) return;
+
+    try {
+      const response = await apiClient.delete(`/api/categories/${id}`);
+      if (response.status === 204) {
+        toast.success("Category deleted successfully");
+        fetchCategories(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Error deleting category");
+      }
+    } catch (error) {
+      toast.error("There was an error while deleting category");
+    }
+  };
 
   return (
     <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col max-xl:h-fit max-xl:gap-y-4">
@@ -69,14 +92,20 @@ const DashboardCategory = () => {
                       </div>
                     </td>
 
-                    <th>
+                    <td className="flex gap-2">
                       <Link
                         href={`/admin/categories/${category?.id}`}
-                        className="btn btn-ghost btn-xs"
+                        className="btn btn-info btn-xs text-white"
                       >
-                        details
+                        edit
                       </Link>
-                    </th>
+                      <button
+                        onClick={() => deleteCategory(category?.id)}
+                        className="btn btn-error btn-xs text-white"
+                      >
+                        delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
             </tbody>
